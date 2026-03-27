@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Flappy Circle - Minimalist Game</title>
+    <style>
+        /* Modern CSS Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Modern Color Palette */
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #ec4899;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--background);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.2) 0, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.2) 0, transparent 50%);
+            min-height: 100vh;
+            max-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            overflow: hidden;
+            color: var(--text-primary);
+            /* Prevent pull-to-refresh and overscroll on mobile */
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-x pan-y;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            height: 100%;
+            max-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        /* Header with improved typography */
+        header {
+            text-align: center;
+            padding: 15px 20px;
+            animation: fadeInDown 0.6s ease-out;
+            flex-shrink: 0;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header h1 {
+            font-size: clamp(2em, 5vw, 3.5em);
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.3));
+        }
+
+        .subtitle {
+            font-size: clamp(0.9em, 2vw, 1.1em);
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: 0.02em;
+        }
+
+        /* Main Layout with better spacing */
+        main {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: center;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Game Container - Premium card design */
+        .game-container {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow:
+                0 20px 60px var(--shadow),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        #gameCanvas {
+            display: block;
+            border-radius: 12px;
+            cursor: pointer;
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            /* Prevent touch actions that interfere with gameplay */
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Sidebar with improved hierarchy */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 320px;
+            max-width: 340px;
+            height: 100%;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) transparent;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        /* Controls Card - Modern glassmorphism */
+        .controls-container {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(16px);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow:
+                0 20px 60px var(--shadow),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .controls-container h3 {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 18px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-instruction {
+            padding: 16px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            margin-bottom: 16px;
+        }
+
+        .control-instruction p {
+            font-size: 0.95em;
+            line-height: 1.7;
+            color: var(--text-primary);
+            text-align: center;
+            margin: 0;
+        }
+
+        .control-instruction strong {
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        .game-tip {
+            margin-top: 16px;
+            padding: 14px;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+            border-left: 3px solid var(--accent);
+            border-radius: 10px;
+            font-size: 0.88em;
+            line-height: 1.6;
+        }
+
+        .game-tip strong {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Leaderboard - Enhanced design */
+        .leaderboard-container {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(16px);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow:
+                0 20px 60px var(--shadow),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) transparent;
+        }
+
+        .leaderboard-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .leaderboard-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .leaderboard-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        .leaderboard-container h2 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+            counter-reset: rank;
+        }
+
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .leaderboard-entry::before {
+            counter-increment: rank;
+            content: counter(rank);
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0 50% 50% 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75em;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .leaderboard-entry:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateX(4px);
+        }
+
+        .leaderboard-entry.top-score {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+            border-color: var(--accent);
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+        }
+
+        .leaderboard-entry.top-score::before {
+            background: linear-gradient(135deg, var(--accent), #d97706);
+            color: white;
+            content: "👑";
+            font-size: 1em;
+        }
+
+        .score-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-left: 40px;
+        }
+
+        .score-date {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .no-scores {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 40px 20px;
+            font-style: italic;
+            opacity: 0.7;
+        }
+
+        .clear-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 12px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .clear-btn:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .clear-btn:active {
+            transform: translateY(0);
+        }
+
+        footer {
+            position: fixed;
+            bottom: 12px;
+            right: 20px;
+            color: var(--text-secondary);
+            font-size: 0.7em;
+            opacity: 0.5;
+            z-index: 1000;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            main {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
+
+            .sidebar {
+                grid-template-columns: 1fr 1fr;
+                display: grid;
+                width: 100%;
+                max-width: 800px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 8px;
+            }
+
+            header {
+                padding: 12px;
+            }
+
+            header h1 {
+                font-size: 2.2em;
+            }
+
+            main {
+                gap: 12px;
+            }
+
+            .sidebar {
+                grid-template-columns: 1fr;
+                max-width: 100%;
+                gap: 12px;
+            }
+
+            .leaderboard-container,
+            .controls-container {
+                min-width: 0;
+                max-width: 100%;
+                padding: 16px;
+            }
+
+            .game-container {
+                padding: 10px;
+            }
+
+            .game-tip {
+                font-size: 0.85em;
+                padding: 12px;
+            }
+        }
+
+        /* Mobile-specific optimizations */
+        @media (max-width: 768px) and (hover: none) {
+            /* Hide cursor pointer on touch devices */
+            #gameCanvas {
+                cursor: default;
+            }
+
+            /* Larger touch targets */
+            .clear-btn {
+                padding: 14px;
+                font-size: 1em;
+            }
+
+            /* Optimize for mobile performance */
+            * {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 2em;
+            }
+
+            .controls-container,
+            .leaderboard-container {
+                padding: 18px;
+            }
+
+            .control-item {
+                padding: 10px 12px;
+            }
+
+            .control-icon {
+                min-width: 65px;
+                font-size: 0.8em;
+            }
+
+            footer {
+                font-size: 0.65em;
+                bottom: 8px;
+                right: 12px;
+            }
+        }
+
+        @media (orientation: landscape) and (max-height: 650px) {
+            header {
+                padding: 10px;
+            }
+
+            header h1 {
+                font-size: 2em;
+                margin-bottom: 4px;
+            }
+
+            .subtitle {
+                font-size: 0.9em;
+            }
+
+            .controls-container,
+            .leaderboard-container {
+                padding: 16px;
+            }
+
+            .game-tip {
+                font-size: 0.82em;
+                padding: 10px;
+            }
+        }
+
+        /* Smooth scroll behavior */
+        * {
+            scroll-behavior: smooth;
+        }
+
+        /* Focus states for accessibility */
+        button:focus-visible,
+        canvas:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Flappy Circle</h1>
+            <p class="subtitle">A minimalist take on the classic game</p>
+        </header>
+
+        <main>
+            <div class="game-container">
+                <canvas id="gameCanvas"></canvas>
+            </div>
+
+            <div class="sidebar">
+                <div class="controls-container">
+                    <h3>🎮 How to Play</h3>
+                    <div class="control-instruction">
+                        <p>Press <strong>SPACE</strong>, <strong>CLICK</strong>, or <strong>TAP</strong> to jump and start the game</p>
+                    </div>
+                    <div class="game-tip">
+                        <strong>💡 Pro Tip:</strong>
+                        Time your jumps carefully! The bird has momentum - tap gently for small adjustments.
+                    </div>
+                </div>
+
+                <aside class="leaderboard-container">
+                    <h2>🏆 Leaderboard</h2>
+                    <div id="leaderboard"></div>
+                    <button id="clearLeaderboard" class="clear-btn">Clear Leaderboard</button>
+                </aside>
+            </div>
+        </main>
+
+        <footer>
+            <p>Built with Claude Code</p>
+        </footer>
+    </div>
+
+    <script>
+        // Calculate responsive canvas dimensions
+        function getCanvasDimensions() {
+            const padding = 60;
+            const headerHeight = 120;
+            const sidebarWidth = window.innerWidth > 1024 ? 360 : 0;
+
+            const availableWidth = window.innerWidth - sidebarWidth - padding;
+            const availableHeight = window.innerHeight - headerHeight - 40;
+
+            // Base aspect ratio 4:3
+            const aspectRatio = 4 / 3;
+
+            let width = Math.min(availableWidth, 800);
+            let height = width / aspectRatio;
+
+            if (height > availableHeight) {
+                height = availableHeight;
+                width = height * aspectRatio;
+            }
+
+            // Ensure minimum sizes
+            width = Math.max(320, Math.floor(width));
+            height = Math.max(240, Math.floor(height));
+
+            return { width, height };
+        }
+
+        // Dynamic Game Config based on canvas size
+        function createGameConfig(canvasWidth, canvasHeight) {
+            const scale = canvasWidth / 800;
+            return {
+                WIDTH: canvasWidth,
+                HEIGHT: canvasHeight,
+                GRAVITY: 0.5 * scale,
+                JUMP_STRENGTH: -10 * scale,
+                OBSTACLE_WIDTH: 60 * scale,
+                OBSTACLE_GAP: 180 * scale,
+                OBSTACLE_SPEED: 3 * scale,
+                OBSTACLE_SPAWN_INTERVAL: 1500,
+                BIRD_RADIUS: 20 * scale,
+                BIRD_X: 150 * scale,
+            };
+        }
+
+        const COLORS = {
+            BACKGROUND: '#87CEEB',
+            BIRD: '#FFD700',
+            OBSTACLE: '#228B22',
+            TEXT: '#FFFFFF',
+            SCORE: '#000000',
+        };
+
+        // Storage utilities
+        const LEADERBOARD_KEY = 'flappyBirdLeaderboard';
+        const MAX_LEADERBOARD_ENTRIES = 10;
+
+        function saveScore(score) {
+            const leaderboard = getLeaderboard();
+            const newEntry = {
+                score: score,
+                date: new Date().toISOString(),
+                timestamp: Date.now(),
+            };
+            leaderboard.push(newEntry);
+            leaderboard.sort((a, b) => b.score - a.score);
+            const topScores = leaderboard.slice(0, MAX_LEADERBOARD_ENTRIES);
+            localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(topScores));
+            return topScores;
+        }
+
+        function getLeaderboard() {
+            const data = localStorage.getItem(LEADERBOARD_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function clearLeaderboard() {
+            localStorage.removeItem(LEADERBOARD_KEY);
+        }
+
+        // Bird class
+        class Bird {
+            constructor(config) {
+                this.config = config;
+                this.x = config.BIRD_X;
+                this.y = config.HEIGHT / 2;
+                this.velocity = 0;
+                this.radius = config.BIRD_RADIUS;
+            }
+
+            jump() {
+                this.velocity = this.config.JUMP_STRENGTH;
+            }
+
+            update() {
+                this.velocity += this.config.GRAVITY;
+                this.y += this.velocity;
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = COLORS.BIRD;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#FFA500';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            reset() {
+                this.y = this.config.HEIGHT / 2;
+                this.velocity = 0;
+            }
+        }
+
+        // Obstacle class
+        class Obstacle {
+            constructor(x, config) {
+                this.config = config;
+                this.x = x;
+                this.width = config.OBSTACLE_WIDTH;
+                this.gap = config.OBSTACLE_GAP;
+                this.speed = config.OBSTACLE_SPEED;
+                const scale = config.WIDTH / 800;
+                const minGapY = 100 * scale;
+                const maxGapY = config.HEIGHT - this.gap - 100 * scale;
+                this.gapY = Math.random() * (maxGapY - minGapY) + minGapY;
+                this.passed = false;
+            }
+
+            update() {
+                this.x -= this.speed;
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = COLORS.OBSTACLE;
+                ctx.strokeStyle = '#1a5f1a';
+                ctx.lineWidth = 2;
+                ctx.fillRect(this.x, 0, this.width, this.gapY);
+                ctx.strokeRect(this.x, 0, this.width, this.gapY);
+                const bottomY = this.gapY + this.gap;
+                ctx.fillRect(this.x, bottomY, this.width, this.config.HEIGHT - bottomY);
+                ctx.strokeRect(this.x, bottomY, this.width, this.config.HEIGHT - bottomY);
+            }
+
+            isOffScreen() {
+                return this.x + this.width < 0;
+            }
+
+            collidesWith(bird) {
+                if (this.checkCollisionWithRect(bird, this.x, 0, this.width, this.gapY)) {
+                    return true;
+                }
+                const bottomY = this.gapY + this.gap;
+                if (this.checkCollisionWithRect(bird, this.x, bottomY, this.width, this.config.HEIGHT - bottomY)) {
+                    return true;
+                }
+                return false;
+            }
+
+            checkCollisionWithRect(bird, rectX, rectY, rectWidth, rectHeight) {
+                const closestX = Math.max(rectX, Math.min(bird.x, rectX + rectWidth));
+                const closestY = Math.max(rectY, Math.min(bird.y, rectY + rectHeight));
+                const distanceX = bird.x - closestX;
+                const distanceY = bird.y - closestY;
+                const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+                return distanceSquared < bird.radius * bird.radius;
+            }
+        }
+
+        // Game class
+        class Game {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.resizeCanvas();
+                this.bird = new Bird(this.config);
+                this.obstacles = [];
+                this.score = 0;
+                this.gameOver = false;
+                this.gameStarted = false;
+                this.lastObstacleTime = 0;
+                this.animationId = null;
+                this.setupEventListeners();
+                this.render();
+            }
+
+            resizeCanvas() {
+                const dimensions = getCanvasDimensions();
+                this.canvas.width = dimensions.width;
+                this.canvas.height = dimensions.height;
+                this.config = createGameConfig(dimensions.width, dimensions.height);
+
+                if (this.bird) {
+                    this.bird.config = this.config;
+                    this.bird.x = this.config.BIRD_X;
+                    this.bird.radius = this.config.BIRD_RADIUS;
+                }
+            }
+
+            setupEventListeners() {
+                const jumpHandler = (e) => {
+                    if (e.type === 'keydown' && e.code !== 'Space') return;
+
+                    // Prevent default touch behaviors
+                    if (e.type === 'touchstart' || e.type === 'click') {
+                        e.preventDefault();
+                    }
+
+                    if (!this.gameStarted) {
+                        this.start();
+                    } else if (!this.gameOver) {
+                        this.bird.jump();
+                    } else {
+                        this.restart();
+                    }
+                };
+
+                // Keyboard support (desktop)
+                document.addEventListener('keydown', jumpHandler);
+
+                // Mouse support (desktop)
+                this.canvas.addEventListener('click', jumpHandler);
+
+                // Touch support (mobile)
+                this.canvas.addEventListener('touchstart', jumpHandler, { passive: false });
+
+                // Prevent context menu on long press (mobile)
+                this.canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
+
+                // Handle window resize
+                let resizeTimeout;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        if (!this.gameStarted || this.gameOver) {
+                            this.resizeCanvas();
+                            this.render();
+                        }
+                    }, 250);
+                });
+
+                // Prevent accidental page navigation on swipe (mobile)
+                document.addEventListener('touchmove', (e) => {
+                    if (e.target === this.canvas) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+            }
+
+            start() {
+                this.gameStarted = true;
+                this.lastObstacleTime = Date.now();
+                this.gameLoop();
+            }
+
+            restart() {
+                this.bird.reset();
+                this.obstacles = [];
+                this.score = 0;
+                this.gameOver = false;
+                this.lastObstacleTime = Date.now();
+                this.gameLoop();
+            }
+
+            gameLoop() {
+                if (this.gameOver) return;
+                this.update();
+                this.render();
+                this.animationId = requestAnimationFrame(() => this.gameLoop());
+            }
+
+            update() {
+                this.bird.update();
+                if (this.bird.y - this.bird.radius <= 0 || this.bird.y + this.bird.radius >= this.config.HEIGHT) {
+                    this.endGame();
+                    return;
+                }
+                const currentTime = Date.now();
+                if (currentTime - this.lastObstacleTime > this.config.OBSTACLE_SPAWN_INTERVAL) {
+                    this.obstacles.push(new Obstacle(this.config.WIDTH, this.config));
+                    this.lastObstacleTime = currentTime;
+                }
+                for (let i = this.obstacles.length - 1; i >= 0; i--) {
+                    const obstacle = this.obstacles[i];
+                    obstacle.update();
+                    if (obstacle.collidesWith(this.bird)) {
+                        this.endGame();
+                        return;
+                    }
+                    if (!obstacle.passed && obstacle.x + obstacle.width < this.bird.x) {
+                        obstacle.passed = true;
+                        this.score++;
+                    }
+                    if (obstacle.isOffScreen()) {
+                        this.obstacles.splice(i, 1);
+                    }
+                }
+            }
+
+            render() {
+                this.ctx.fillStyle = COLORS.BACKGROUND;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.obstacles.forEach(obstacle => obstacle.draw(this.ctx));
+                this.bird.draw(this.ctx);
+                this.drawScore();
+                if (!this.gameStarted) {
+                    this.drawStartMessage();
+                }
+                if (this.gameOver) {
+                    this.drawGameOver();
+                }
+            }
+
+            drawScore() {
+                const scale = this.config.WIDTH / 800;
+                this.ctx.fillStyle = COLORS.SCORE;
+                this.ctx.font = `bold ${Math.floor(36 * scale)}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(this.score, this.config.WIDTH / 2, 50 * scale);
+            }
+
+            drawStartMessage() {
+                const scale = this.config.WIDTH / 800;
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                this.ctx.fillRect(0, this.config.HEIGHT / 2 - 60 * scale, this.config.WIDTH, 120 * scale);
+                this.ctx.fillStyle = COLORS.TEXT;
+                this.ctx.font = `bold ${Math.floor(32 * scale)}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('FLAPPY CIRCLE', this.config.WIDTH / 2, this.config.HEIGHT / 2 - 10 * scale);
+                this.ctx.font = `${Math.floor(20 * scale)}px Arial`;
+                this.ctx.fillText('Click or Press SPACE to Start', this.config.WIDTH / 2, this.config.HEIGHT / 2 + 30 * scale);
+            }
+
+            drawGameOver() {
+                const scale = this.config.WIDTH / 800;
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.fillRect(0, this.config.HEIGHT / 2 - 100 * scale, this.config.WIDTH, 200 * scale);
+                this.ctx.fillStyle = COLORS.TEXT;
+                this.ctx.font = `bold ${Math.floor(48 * scale)}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('GAME OVER', this.config.WIDTH / 2, this.config.HEIGHT / 2 - 30 * scale);
+                this.ctx.font = `${Math.floor(24 * scale)}px Arial`;
+                this.ctx.fillText(`Score: ${this.score}`, this.config.WIDTH / 2, this.config.HEIGHT / 2 + 10 * scale);
+                this.ctx.font = `${Math.floor(20 * scale)}px Arial`;
+                this.ctx.fillText('Click or Press SPACE to Restart', this.config.WIDTH / 2, this.config.HEIGHT / 2 + 60 * scale);
+            }
+
+            endGame() {
+                this.gameOver = true;
+                saveScore(this.score);
+                window.dispatchEvent(new CustomEvent('gameOver', { detail: { score: this.score } }));
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+            }
+        }
+
+        // Leaderboard UI
+        class LeaderboardUI {
+            constructor(containerElement) {
+                this.container = containerElement;
+                this.updateDisplay();
+                window.addEventListener('gameOver', () => {
+                    this.updateDisplay();
+                });
+            }
+
+            updateDisplay() {
+                const leaderboard = getLeaderboard();
+                if (leaderboard.length === 0) {
+                    this.container.innerHTML = '<p class="no-scores">No scores yet. Start playing!</p>';
+                    return;
+                }
+                let html = '<ol class="leaderboard-list">';
+                leaderboard.forEach((entry, index) => {
+                    const date = new Date(entry.date);
+                    const dateStr = date.toLocaleDateString();
+                    html += `
+                        <li class="leaderboard-entry ${index === 0 ? 'top-score' : ''}">
+                            <span class="score-value">${entry.score}</span>
+                            <span class="score-date">${dateStr}</span>
+                        </li>
+                    `;
+                });
+                html += '</ol>';
+                this.container.innerHTML = html;
+            }
+        }
+
+        // Initialize the game
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const game = new Game(canvas);
+            const leaderboardContainer = document.getElementById('leaderboard');
+            const leaderboardUI = new LeaderboardUI(leaderboardContainer);
+            document.getElementById('clearLeaderboard').addEventListener('click', () => {
+                if (confirm('Are you sure you want to clear the leaderboard?')) {
+                    clearLeaderboard();
+                    leaderboardUI.updateDisplay();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

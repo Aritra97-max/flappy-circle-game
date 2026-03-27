@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Circle - Minimalist Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Flappy Circle</h1>
+            <p class="subtitle">A minimalist take on the classic game</p>
+        </header>
+
+        <main>
+            <div class="game-container">
+                <canvas id="gameCanvas"></canvas>
+            </div>
+
+            <aside class="leaderboard-container">
+                <h2>Leaderboard</h2>
+                <div id="leaderboard"></div>
+                <button id="clearLeaderboard" class="clear-btn">Clear Leaderboard</button>
+            </aside>
+        </main>
+
+        <footer>
+            <p>Controls: Click or press SPACE to jump</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { Game, LeaderboardUI } from './js/game.js';
+        import { clearLeaderboard } from './js/utils/storage.js';
+
+        // Initialize game
+        const canvas = document.getElementById('gameCanvas');
+        const game = new Game(canvas);
+
+        // Initialize leaderboard
+        const leaderboardContainer = document.getElementById('leaderboard');
+        const leaderboardUI = new LeaderboardUI(leaderboardContainer);
+
+        // Clear leaderboard button
+        document.getElementById('clearLeaderboard').addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear the leaderboard?')) {
+                clearLeaderboard();
+                leaderboardUI.updateDisplay();
+            }
+        });
+    </script>
+</body>
+</html>
